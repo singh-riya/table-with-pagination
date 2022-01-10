@@ -1,11 +1,12 @@
 import './App.css';
-import Table from './components/Table';
+import ContainerTable from './components/ContainerTable';
 
 function App() {
   return (
     <div className="App">
       <h1>Table</h1>
-      <Table/>
+      <ContainerTable
+       />
     </div>
   );
 }

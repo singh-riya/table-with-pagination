@@ -5,48 +5,22 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
-import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import axios from "axios";
 import {
   Button,
   Grid,
-  Modal,
-  Typography,
-  Input,
-  Stack,
   Snackbar,
 } from "@mui/material";
 import MuiAlert from '@mui/material/Alert';
-import { Formik, Form, Field } from "formik";
-import * as Yup from "yup";
-
-const style = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 400,
-  bgcolor: "background.paper",
-  border: "2px solid #000",
-  boxShadow: 24,
-  p: 4,
-};
-
-const SignupSchema = Yup.object().shape({
-  name: Yup.string()
-    .min(2, "Too Short!")
-    .max(50, "Too Long!")
-    .required("Required"),
-  trips: Yup.number().required("Required"),
-  airline: Yup.number().required("Required"),
-});
+import ModalForm from "./ModalForm";
+import Pagination from "./Pagination";
 
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
 
-export default function ColumnGroupingTable() {
+export default function ContainerTable() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [data, setData] = useState({
@@ -135,71 +109,11 @@ export default function ColumnGroupingTable() {
       <Grid container direction='column'>
         <Grid item>
           <Button onClick={handleOpen}>Add Passenger</Button>
-          <Modal
+          <ModalForm
             open={open}
-            onClose={handleClose}
-            aria-labelledby='modal-modal-title'
-            aria-describedby='modal-modal-description'
-          >
-            <Paper sx={style}>
-              <h1>Add Passenger Details</h1>
-              <Formik
-                initialValues={{
-                  name: "",
-                  trips: "",
-                  airline: "",
-                }}
-                validationSchema={SignupSchema}
-                onSubmit={(values) => {
-                  addPassenger(values);
-                }}
-              >
-                {({ errors, touched, handleChange }) => (
-                  <Form>
-                    <Stack sx={{ width: "100%" }} spacing={2}>
-                      <Input
-                        onChange={handleChange}
-                        component={Field}
-                        name='name'
-                        placeholder='Name'
-                      />
-                      {errors.name && touched.name ? (
-                        <Typography color='error' variant='caption'>
-                          {errors.name}
-                        </Typography>
-                      ) : null}
-                      <Input
-                        onChange={handleChange}
-                        component={Field}
-                        name='trips'
-                        type='number'
-                        placeholder='Trips'
-                      />
-                      {errors.trips && touched.trips ? (
-                        <Typography color='error' variant='caption'>
-                          {errors.trips}
-                        </Typography>
-                      ) : null}
-                      <Input
-                        onChange={handleChange}
-                        component={Field}
-                        name='airline'
-                        type='number'
-                        placeholder='Airline'
-                      />
-                      {errors.airline && touched.airline ? (
-                        <Typography color='error' variant='caption'>
-                          {errors.airline}
-                        </Typography>
-                      ) : null}
-                      <Button variant='contained' type='submit'>Submit</Button>
-
-                    </Stack>
-                  </Form>
-                )}
-              </Formik>
-            </Paper>
-          </Modal>
+            handleClose={handleClose}
+            addPassenger={addPassenger}
+          />        
           <Snackbar
             anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             open={openSnack.show}
@@ -243,14 +157,13 @@ export default function ColumnGroupingTable() {
                 </TableBody>
               </Table>
             </TableContainer>
-            <TablePagination
-              rowsPerPageOptions={[10, 25, 100]}
-              component='div'
-              count={data.totalCount}
+            <Pagination
               rowsPerPage={rowsPerPage}
               page={page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
+              totalCount={data.totalCount}
+              handleChangePage={handleChangePage}
+              handleChangeRowsPerPage={handleChangeRowsPerPage}
+              count={data.totalCount}
             />
           </Paper>
         </Grid>

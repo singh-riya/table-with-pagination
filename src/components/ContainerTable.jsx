@@ -4,36 +4,32 @@ import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import TablePagination from "@mui/material/TablePagination";
 import axios from "axios";
-import {
-  Button,
-  Grid,
-  Snackbar,
-} from "@mui/material";
-import MuiAlert from '@mui/material/Alert';
-import ModalForm from "./ModalForm";
-import Pagination from "./Pagination";
+import { Grid } from "@mui/material";
+import EnhancedTableHead from "./EnhancedTableHead";
+import EnhancedTableToolbar from "./EnhancedTableToolbar";
+import { getComparator, tranformHeaders } from "../utils";
+import AddPassenger from "./AddPassenger";
 
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-
-export default function ContainerTable() {
+function ContainerTable() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [order, setOrder] = useState("asc");
+  const [orderBy, setOrderBy] = useState("id");
   const [data, setData] = useState({
     columns: [],
     rows: [],
     totalCount: 0,
   });
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
   const [openSnack, setOpenSnack] = useState({
     show: false,
     message: "",
     severity: "",
   });
+
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
@@ -52,10 +48,10 @@ export default function ContainerTable() {
       })
       .then(({ data }) => {
         if ((data?.data || []).length) {
-          const columns = Object.keys(data.data[0] || {});
+          const columns = tranformHeaders(data.data[0] || {});
           setData({
             columns,
-            rows: data.data.map((row) => Object.values(row)),
+            rows: data.data,
             totalCount: data?.totalPages,
           });
         }
@@ -89,7 +85,7 @@ export default function ContainerTable() {
         setOpenSnack({
           show: true,
           message: "Passenger added successfully",
-          severity: "success"
+          severity: "success",
         });
         getData();
       })
@@ -99,71 +95,100 @@ export default function ContainerTable() {
         setOpenSnack({
           show: true,
           message: "Error in adding passenger",
-          severity: "error"
+          severity: "error",
         });
       });
   };
 
+  const handleRequestSort = (_event, property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const handleSearch = (event) => {
+    const { value } = event.target;
+    const searchedRows = data.rows.filter((row) => {
+      return Object.keys(row).some((key) =>
+        (row[key] || "").toString().toLowerCase().includes(value.toLowerCase())
+      );
+    });
+    setData({
+      ...data,
+      searchedRows,
+    });
+  };
+
+  const handleCloseSnack = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setOpenSnack({
+      show: false,
+      message: "",
+      severity: "",
+    });
+  };
+
   return (
     <>
-      <Grid container direction='column'>
+      <Grid container direction="column">
         <Grid item>
-          <Button onClick={handleOpen}>Add Passenger</Button>
-          <ModalForm
-            open={open}
-            handleClose={handleClose}
+          <AddPassenger
             addPassenger={addPassenger}
-          />        
-          <Snackbar
-            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-            open={openSnack.show}
-            onClose={() => setOpenSnack({ show: false, message: '' })}
-            autoHideDuration={6000}
-            message={openSnack.message}
-          >
-            <Alert onClose={() => setOpenSnack({ show: false, message: '' })} severity={openSnack.severity} sx={{ width: '100%' }} >
-              {openSnack.message}
-            </Alert>
-          </Snackbar>
+            handleClose={handleClose}
+            handleCloseSnack={handleCloseSnack}
+            open={open}
+            openSnack={openSnack}
+            handleOpen={handleOpen}
+          />
         </Grid>
 
         <Grid item>
           <Paper sx={{ width: "100%" }}>
+            <EnhancedTableToolbar handleSearch={handleSearch} />
             <TableContainer sx={{ maxHeight: 440 }}>
-              <Table stickyHeader aria-label='sticky table'>
-                <TableHead>
-                  <TableRow>
-                    {data.columns.map((key, index) => {
-                      console.log({ key, index });
-                      return <TableCell key={index}>{key}</TableCell>;
-                    })}
-                  </TableRow>
-                </TableHead>
+              <Table stickyHeader aria-label="sticky table">
+                <EnhancedTableHead
+                  columns={data.columns}
+                  onRequestSort={handleRequestSort}
+                  order={order}
+                  orderBy={orderBy}
+                />
                 <TableBody>
-                  {data.rows.map((row, index) => {
-                    return (
-                      <TableRow key={index}>
-                        {row.map((cell, index) => {
-                          if (!Array.isArray(cell)) {
+                  {data.rows
+                    .sort(getComparator(order, orderBy))
+                    .filter((item) => {
+                      if (data.searchedRows) {
+                        return data.searchedRows.includes(item);
+                      }
+                      return true;
+                    })
+                    .map((row, index) => (
+                      <TableRow hover key={index}>
+                        {Object.keys(row).map((cell, cIndex) => {
+                          if (!Array.isArray(row[cell])) {
                             return (
-                              <TableCell key={index}>{cell || "--"}</TableCell>
+                              <TableCell key={cIndex}>
+                                {row[cell] || "--"}
+                              </TableCell>
                             );
                           }
-                          return <TableCell key={index}>--</TableCell>;
+                          return <TableCell key={cIndex}>--</TableCell>;
                         })}
                       </TableRow>
-                    );
-                  })}
+                    ))}
                 </TableBody>
               </Table>
             </TableContainer>
-            <Pagination
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 100]}
+              component="div"
+              count={data.totalCount}
               rowsPerPage={rowsPerPage}
               page={page}
-              totalCount={data.totalCount}
-              handleChangePage={handleChangePage}
-              handleChangeRowsPerPage={handleChangeRowsPerPage}
-              count={data.totalCount}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
             />
           </Paper>
         </Grid>
@@ -171,3 +196,5 @@ export default function ContainerTable() {
     </>
   );
 }
+
+export default ContainerTable;
